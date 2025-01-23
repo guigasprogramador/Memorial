@@ -2,10 +2,148 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://nrmpplhkntvnmeeespzy.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ybXBwbGhrbnR2bm1lZWVzcHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1ODQ5MDAsImV4cCI6MjA1MTE2MDkwMH0.3GHD_IGN4I-y-KhvfXDGK1uVBrdScMeEaH9cxYFRhhg";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const MINIO_ENDPOINT = import.meta.env.VITE_MINIO_ENDPOINT;
+const MINIO_ACCESS_KEY = import.meta.env.VITE_MINIO_ACCESS_KEY;
+const MINIO_SECRET_KEY = import.meta.env.VITE_MINIO_SECRET_KEY;
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+if (!SUPABASE_KEY || !SUPABASE_URL) {
+  throw new Error('Variáveis de ambiente do Supabase não encontradas');
+}
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+if (!MINIO_ENDPOINT || !MINIO_ACCESS_KEY || !MINIO_SECRET_KEY) {
+  throw new Error('Variáveis de ambiente do MinIO não encontradas');
+}
+
+export const supabase = createClient<Database>(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    },
+    db: {
+      schema: 'public'
+    },
+    global: {
+      headers: {
+        'x-my-custom-header': 'memorial-site'
+      }
+    }
+  }
+);
+
+// Função para fazer upload de imagem para memórias
+export async function uploadMemoryImage(file: File) {
+  try {
+    if (!file) {
+      throw new Error('Nenhum arquivo fornecido');
+    }
+
+    // Verifica o tipo do arquivo
+    if (!file.type.startsWith('image/')) {
+      throw new Error('O arquivo deve ser uma imagem');
+    }
+
+    // Gera um nome único para o arquivo
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    console.log('Iniciando upload...', {
+      fileName,
+      fileType: file.type,
+      fileSize: file.size
+    });
+
+    // Tenta fazer o upload
+    const { data, error: uploadError } = await supabase.storage
+      .from('memories')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type
+      });
+
+    if (uploadError) {
+      console.error('Erro detalhado do upload:', {
+        error: uploadError,
+        message: uploadError.message,
+        statusCode: uploadError.statusCode,
+        name: uploadError.name
+      });
+      throw uploadError;
+    }
+
+    if (!data?.path) {
+      throw new Error('Caminho do arquivo não retornado pelo Supabase');
+    }
+
+    console.log('Upload concluído:', data);
+
+    // Obtém a URL pública
+    const { data: { publicUrl }, error: urlError } = supabase.storage
+      .from('memories')
+      .getPublicUrl(data.path);
+
+    if (urlError) {
+      console.error('Erro ao obter URL pública:', urlError);
+      throw urlError;
+    }
+
+    if (!publicUrl) {
+      throw new Error('URL pública não retornada pelo Supabase');
+    }
+
+    console.log('URL pública obtida:', publicUrl);
+
+    return { filePath: data.path, publicUrl };
+  } catch (error) {
+    console.error('Erro completo ao fazer upload:', error);
+    throw error;
+  }
+}
+
+// Função para fazer upload de imagem para álbum
+export async function uploadAlbumImage(file: File) {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `album/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('supabase')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('supabase')
+      .getPublicUrl(filePath);
+
+    return { filePath, publicUrl };
+  } catch (error) {
+    console.error('Erro ao fazer upload:', error);
+    throw error;
+  }
+}
+
+// Função para deletar imagem
+export async function deleteImage(filePath: string) {
+  try {
+    const { error } = await supabase.storage
+      .from('supabase')
+      .remove([filePath]);
+
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error('Erro ao deletar imagem:', error);
+    throw error;
+  }
+}

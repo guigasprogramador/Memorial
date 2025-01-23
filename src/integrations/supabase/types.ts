@@ -6,101 +6,62 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+export interface Database {
   public: {
     Tables: {
-      audios: {
-        Row: {
-          created_at: string | null
-          id: number
-          url: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: never
-          url: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: never
-          url?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       messages: {
         Row: {
-          created_at: string | null
-          id: number
-          message: string
+          id: string
           name: string
-          user_id: string | null
+          message: string
+          created_at: string
         }
         Insert: {
-          created_at?: string | null
-          id?: never
-          message: string
           name: string
-          user_id?: string | null
+          message: string
         }
         Update: {
-          created_at?: string | null
-          id?: never
-          message?: string
           name?: string
-          user_id?: string | null
+          message?: string
         }
-        Relationships: []
       }
       photos: {
         Row: {
-          author_name: string
-          created_at: string | null
-          description: string | null
-          id: number
+          id: string
           url: string
-          user_id: string | null
+          name: string
+          description: string
+          created_at: string
         }
         Insert: {
-          author_name: string
-          created_at?: string | null
-          description?: string | null
-          id?: number
           url: string
-          user_id?: string | null
+          name: string
+          description: string
         }
         Update: {
-          author_name?: string
-          created_at?: string | null
-          description?: string | null
-          id?: number
           url?: string
-          user_id?: string | null
+          name?: string
+          description?: string
         }
-        Relationships: []
       }
-      videos: {
+      memories: {
         Row: {
-          created_at: string | null
-          id: number
-          url: string
-          user_id: string | null
+          id: string
+          title: string
+          description: string
+          image_url: string
+          created_at: string
         }
         Insert: {
-          created_at?: string | null
-          id?: never
-          url: string
-          user_id?: string | null
+          title: string
+          description: string
+          image_url: string
         }
         Update: {
-          created_at?: string | null
-          id?: never
-          url?: string
-          user_id?: string | null
+          title?: string
+          description?: string
+          image_url?: string
         }
-        Relationships: []
       }
     }
     Views: {
@@ -110,9 +71,6 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
       [_ in never]: never
     }
   }

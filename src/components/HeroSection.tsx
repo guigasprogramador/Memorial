@@ -28,7 +28,7 @@ const HeroSection = () => {
         >
           <img
             src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d"
-            alt="Benedito Antonio Carneiro Rodrigues"
+            alt="Benedito Antônio Carneiro Rodrigues"
             className="w-full h-full object-cover"
           />
         </motion.div>
@@ -40,7 +40,7 @@ const HeroSection = () => {
           className="text-center max-w-4xl mx-auto"
         >
           <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-6 leading-tight">
-            Benedito Antonio Carneiro Rodrigues
+            Benedito Antônio Carneiro Rodrigues
           </h1>
           <p className="text-xl sm:text-2xl opacity-90 font-light">
             04 de julho de 1966 - 12 de agosto de 2024

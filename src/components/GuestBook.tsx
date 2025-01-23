@@ -5,10 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
-  id: number;
+  id: string;
   name: string;
   message: string;
   created_at: string;
@@ -22,32 +22,42 @@ const GuestBook = () => {
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
+    console.log('Inicializando GuestBook...');
+    console.log('Supabase client:', supabase);
+    console.log('Supabase auth:', supabase.auth);
     fetchMessages();
   }, []);
 
   const fetchMessages = async () => {
     try {
       setIsFetching(true);
-      console.log("Fetching messages...");
+      console.log("Iniciando busca de mensagens...");
+      
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching messages:', error);
+        console.error('Erro ao buscar mensagens:', error);
+        console.error('Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         toast({
           title: "Erro",
-          description: "Não foi possível carregar as mensagens.",
+          description: `Erro ao carregar mensagens: ${error.message}`,
           variant: "destructive"
         });
         return;
       }
       
-      console.log("Messages fetched:", data);
+      console.log("Mensagens recebidas:", data);
       setMessages(data || []);
     } catch (error) {
-      console.error('Error in fetchMessages:', error);
+      console.error('Erro inesperado em fetchMessages:', error);
       toast({
         title: "Erro",
         description: "Ocorreu um erro ao carregar as mensagens.",
@@ -60,7 +70,10 @@ const GuestBook = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Iniciando envio de mensagem:', newMessage);
+
     if (!newMessage.name || !newMessage.message) {
+      console.log('Campos obrigatórios não preenchidos');
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos.",
@@ -71,21 +84,30 @@ const GuestBook = () => {
 
     setIsLoading(true);
     try {
-      console.log("Inserting new message:", newMessage);
-      const { error } = await supabase
+      console.log("Tentando inserir mensagem:", newMessage);
+      const { data, error } = await supabase
         .from('messages')
         .insert([
           {
             name: newMessage.name,
             message: newMessage.message,
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error inserting message:', error);
+        console.error('Erro ao inserir mensagem:', error);
+        console.error('Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
 
+      console.log('Mensagem inserida com sucesso:', data);
       setNewMessage({ name: "", message: "" });
       toast({
         title: "Mensagem enviada",
@@ -93,10 +115,10 @@ const GuestBook = () => {
       });
       await fetchMessages();
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
+      console.error('Erro inesperado ao enviar mensagem:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível enviar sua mensagem.",
+        description: "Não foi possível enviar sua mensagem. Por favor, tente novamente.",
         variant: "destructive"
       });
     } finally {
